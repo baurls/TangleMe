@@ -9,6 +9,15 @@ def is_within_radius(xc, yc, x, y, radius):
 def get_random_direction():
     return np.random.uniform() * np.pi * 2
 
+def get_left_direction_bias():
+    return np.random.normal(0.06, 0.05)
+
+def get_right_direction_bias():
+    return np.random.normal(-0.06, 0.05)
+
+def random_bool():
+    return np.random.uniform() < 0.5
+
 class Board:
     """
               n
@@ -29,6 +38,16 @@ class Board:
         x = int(np.random.uniform() * self.n)
         y = int(np.random.uniform() * self.m)
         return (x,y)
+
+    def get_random_edge_position(self):
+        x = int(np.random.uniform() * self.n)
+        y = int(np.random.uniform() * self.m)
+        if random_bool():
+            #trim to left or right edge
+            return (0,y) if random_bool() else (self.n-1,y)
+        else:
+            #trim to top or bottom edge
+            return (x,0) if random_bool() else (x, self.m-1)
 
     def is_inside_bounds(self, x, y):
         return 0 <= x < self.n and 0 <= y < self.m
@@ -60,16 +79,29 @@ class Runner:
         self.x, self.y = position
         self.radius = radius
         self.direction = direction if direction is not None else get_random_direction()
-
+        self.steps = 0
 
     def set_new_direction(self):
-        self.direction += np.random.normal(0.0, 0.05)
+        self.direction += np.random.normal(0.0, 0.07)
+
 
     def perform_step(self):
         self.x += np.cos(self.direction) * self.radius
         self.y += np.sin(self.direction) * self.radius
         self.set_new_direction()
+        self.steps += 1
         return self.x,self.y
+
+    def split_possible(self):
+        return self.radius > 2
+
+    def split_equal(self):
+        new_radius = self.radius - 1
+        left_dir = self.direction + get_left_direction_bias()
+        right_dir = self.direction + get_right_direction_bias()
+        runner1 = Runner(self.color, (self.x, self.y), direction=left_dir, radius=new_radius)
+        runner2 = Runner(self.color, (self.x, self.y), direction=right_dir, radius=new_radius)
+        return runner1, runner2
 
 def draw_n_lines(n, board):
     for i in range(n):
@@ -79,7 +111,26 @@ def draw_n_lines(n, board):
     board.plot()
 
 board = Board(1000,2000)
-
-draw_n_lines(50, board)
+number_start_runner = 7
+runners = []
+painted_steps = 0
+for i in range(number_start_runner):
+    radius =  max(1, np.random.normal(7,3))
+    runners.append( Runner(i+1, board.get_random_edge_position(), radius=radius) )
+while len(runners) > 0:
+    runner = runners.pop()
+    painted_steps += 1
+    if board.assign_a_step(runner):
+        #check for splitting
+        if runner.steps > np.random.normal(30, 10) and runner.split_possible():
+                r1, r2 = runner.split_equal()
+                runners.append(r1)
+                runners.append(r2)
+        else:
+            runners.append(runner)
+    if painted_steps % 1000:
+        print(len(runners))
+board.plot()
+#draw_n_lines(50, board)
 
 

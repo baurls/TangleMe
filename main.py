@@ -93,7 +93,7 @@ class Runner:
         return self.x,self.y
 
     def split_possible(self):
-        return self.radius > 2
+        return self.radius > 3
 
     def split_equal(self):
         new_radius = self.radius - 1
@@ -110,27 +110,30 @@ def draw_n_lines(n, board):
             pass
     board.plot()
 
-board = Board(1000,2000)
-number_start_runner = 7
-runners = []
-painted_steps = 0
-for i in range(number_start_runner):
-    radius =  max(1, np.random.normal(7,3))
-    runners.append( Runner(i+1, board.get_random_edge_position(), radius=radius) )
-while len(runners) > 0:
-    runner = runners.pop()
-    painted_steps += 1
-    if board.assign_a_step(runner):
-        #check for splitting
-        if runner.steps > np.random.normal(30, 10) and runner.split_possible():
-                r1, r2 = runner.split_equal()
-                runners.append(r1)
-                runners.append(r2)
-        else:
-            runners.append(runner)
-    if painted_steps % 1000:
-        print(len(runners))
-board.plot()
-#draw_n_lines(50, board)
+def draw_splitting_lines(board, radius_mean=7, radius_std=3, split_mean=30, split_std=10,number_start_runner = 7):
+    runners = []
+    painted_steps = 0
+    for i in range(number_start_runner):
+        radius =  max(1, np.random.normal(radius_mean, radius_std))
+        runners.append( Runner(i+1, board.get_random_edge_position(), radius=radius) )
+    while len(runners) > 0:
+        runner = runners.pop()
+        painted_steps += 1
+        if board.assign_a_step(runner):
+            #check for splitting
+            if runner.steps > np.random.normal(split_mean, split_std) and runner.split_possible():
+                    r1, r2 = runner.split_equal()
+                    runners.append(r1)
+                    runners.append(r2)
+            else:
+                runners =  [runner] + runners
+        if painted_steps % 100 == 0:
+            print(len(runners))
+    board.plot()
+    print(board.name)
+    #draw_n_lines(50, board)
 
 
+
+board = Board(1600, 2560)
+draw_splitting_lines(board, radius_mean=12, radius_std=2, split_mean=25, split_std=10,number_start_runner = 5)
